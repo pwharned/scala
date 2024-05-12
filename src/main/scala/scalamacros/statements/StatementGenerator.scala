@@ -215,11 +215,11 @@ class StatementGenerator(using Quotes) {
     val retrieveToJsonMethodBody: List[Expr[java.sql.ResultSet => String]] = columnInfos.toList.map(colInfo =>
       colInfo.dbType match {
         case DbType.DbInt =>
-          val columnName: Expr[String] = Expr(colInfo.name) // todo: get column name from ColumnInfo
+          val columnName: Expr[String] = Expr(colInfo.name)
           val r: Expr[java.sql.ResultSet => String] = '{ ((rs: java.sql.ResultSet) => f"\"${${columnName}}\":${rs.getInt(${ columnName })}"  ) }
           r
         case DbType.DbString =>
-          val columnName: Expr[String] = Expr(colInfo.name) // todo: get column name from ColumnInfo
+          val columnName: Expr[String] = Expr(colInfo.name)
           val r: Expr[java.sql.ResultSet => String] = '{ ((rs: java.sql.ResultSet) => f"\"${${columnName}}\":\"${rs.getString(${ columnName })}\"") }
           r
       })
@@ -244,7 +244,7 @@ class StatementGenerator(using Quotes) {
     '{
       new PreparedStatementFiltered[CallArgs[A], CallArgs[B]](UnsafeStatementFiltered($sql)){
         def go: String = "hello"
-        def retrieve(rs: java.sql.ResultSet): Tuple = ${ combinedRsGet }.apply(rs)
+        override def retrieve(rs: java.sql.ResultSet): Tuple = ${ combinedRsGet }.apply(rs)
         override def retrieveJson(rs: java.sql.ResultSet): String = ${ combinedRsJsonGet }.apply(rs)
 
       }

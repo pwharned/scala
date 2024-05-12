@@ -2,7 +2,7 @@ package scalamacros.statements
 import reflect.Selectable.reflectiveSelectable
 import scalamacros.logast.logAST
 
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{BufferedReader, InputStreamReader, PrintStream}
 import java.sql.{Connection, DriverManager, ResultSet, Statement}
 import scala.language.reflectiveCalls
 import scala.util.{Failure, Success, Try}
@@ -59,8 +59,8 @@ object DB2Connector {
     val resultSet: ResultSet = pstmt.getResultSet
     resultSet
   }
-}
-@main def preparedStatemntTest(): Unit = {
+
+//@main def preparedStatemntTest(): Unit = {
 
   // Type given explicitly - better error messages than if the type is inferred.
   // Replace the name of the table or the argument with a variable - an error reported by the compiler
@@ -70,33 +70,41 @@ object DB2Connector {
 
   type B = Tuple1[Int]
   //statement.insert(1, "John")
+  def iterateResultSet(rs: ResultSet, f:ResultSet => String, out: PrintStream): String = {
+    var string = ""
+      if (rs.next()) {
+        // process the current row
 
-  val selectStatement: PreparedStatementFiltered[(Int, String), B] = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username"))( Tuple(ColDef[Int]("id") ))
+        val jsonBytes = f(rs)
+        val chunkSize = jsonBytes.length.toHexString
 
-  // Error will be reported as the type of the first column doesn't match.
-  // statement.insert("a", "Brad")
+        // Write the chunk size and newline character
+        //out.write(s"$chunkSize\r\n".getBytes("UTF-8"))
+        // Write the JSON object itself
+        //out.write(jsonBytes.getBytes("utf-8"))
 
-  val select = selectStatement.asInstanceOf[{def retrieve(rs: java.sql.ResultSet): Tuple}]
-  val query: String = selectStatement.select( Tuple(1) )
+        // Write another newline character to separate the chunk
+        //out.write("\r\n".getBytes("UTF-8"))
+        string = string + s"$chunkSize\r\n" + jsonBytes + "\r\n"
 
-  val rs: ResultSet = DB2Connector.connectAndRunPreparedStatement(query, Seq(1))
+      }
 
-  while (rs.next()) {
-    // process the result set
-    select.retrieve(rs).productIterator.foreach(x=> print(x.getClass))
+    string
+
+
+  }
+
+
+  def getUsers(out: PrintStream): String = {
+    val queryJson: String = selectStatement2.select(Tuple(1))
+
+    val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
+    iterateResultSet(rsJson, selectStatement2.retrieveJson,out)
   }
 
   val selectStatement2: PreparedStatementFiltered[(Int, String), B] = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username"))( Tuple(ColDef[Int]("id") ))
 
 
-  val queryJson: String = selectStatement2.select(Tuple(1))
-
-  val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
-
-  while (rsJson.next()) {
-    // process the result set
-    println(selectStatement2.retrieveJson(rsJson))
-  }
 
   // Logged AST that was used to find out the structure of the code that was matched in the macro.
   logAST {

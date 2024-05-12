@@ -63,6 +63,7 @@ class PreparedStatementFiltered[A <: Tuple, B<: Tuple](statement: UnsafeStatemen
   }
   
   def retrieveJson(rs: java.sql.ResultSet): String = ???
+  def retrieve(rs: java.sql.ResultSet): Tuple = ???
 
 
 }
