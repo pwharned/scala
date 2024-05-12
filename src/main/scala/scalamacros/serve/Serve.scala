@@ -12,6 +12,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait Servable:
+
   def listen(port: Int): Unit = {
     val server = new ServerSocket(port)
     while true do
@@ -43,8 +44,7 @@ trait Servable:
     //out.write(chunked.getBytes("utf-8"))
 
     val string = start + DB2Connector.getUsers(out) + "0\r\n\r\n"
-    print(string)
-    print(chunked)
+
 
     //out.write("0\r\n\r\n".getBytes("utf-8"))
     out.write(string.getBytes("utf-8"))

@@ -10,7 +10,7 @@ object DB2Connector {
   val url = "jdbc:db2://localhost:50000/bludb"
   val username = "db2inst1"
   val password = "password"
-  connectAndRunDDL(url, username, password)
+  //connectAndRunDDL(url, username, password)
 
 
   def connectAndRunDDL(url: String, username: String, password: String): Unit = {
@@ -93,16 +93,17 @@ object DB2Connector {
 
 
   }
+  val selectStatement2: PreparedStatementFiltered[(Int, String), B] = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username"))( Tuple(ColDef[Int]("id") ))
+
+  val queryJson: String = selectStatement2.select(Tuple(1))
 
 
   def getUsers(out: PrintStream): String = {
-    val queryJson: String = selectStatement2.select(Tuple(1))
 
     val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
     iterateResultSet(rsJson, selectStatement2.retrieveJson,out)
   }
 
-  val selectStatement2: PreparedStatementFiltered[(Int, String), B] = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username"))( Tuple(ColDef[Int]("id") ))
 
 
 
