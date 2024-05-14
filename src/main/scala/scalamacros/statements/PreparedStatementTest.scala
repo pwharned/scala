@@ -4,8 +4,11 @@ import scalamacros.logast.logAST
 
 import java.io.{BufferedReader, InputStreamReader, PrintStream}
 import java.sql.{Connection, DriverManager, ResultSet, Statement}
+import scala.annotation.experimental
 import scala.language.reflectiveCalls
 import scala.util.{Failure, Success, Try}
+
+@experimental
 object DB2Connector {
   val url = "jdbc:db2://localhost:50000/bludb"
   val username = "db2inst1"
@@ -93,20 +96,19 @@ object DB2Connector {
 
 
   }
-  val selectStatement2: PreparedStatementFiltered[(Int, String), B] = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username"))( Tuple(ColDef[Int]("id") ))
 
+  val selectStatement2 = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username")) ( Tuple(ColDef[Int]("id") ))
+
+  //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
   val queryJson: String = selectStatement2.select(Tuple(1))
 
+  val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
 
   def getUsers(out: PrintStream): String = {
 
     val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
     iterateResultSet(rsJson, selectStatement2.retrieveJson,out)
   }
-
-
-
-
   // Logged AST that was used to find out the structure of the code that was matched in the macro.
   logAST {
     (ColDef[Int]("id"), ColDef[String]("lastName"))
