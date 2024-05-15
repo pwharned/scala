@@ -261,14 +261,6 @@ class StatementGenerator(using Quotes) {
 
       )
 
-
-
-
-
-
-
-
-
       //val cls = Symbol.newClass(Symbol.spliceOwner, name, parents.map(_.tpe), decls, selfType = None)
 
      // val funcSym = name.declaredMethod("func").head
@@ -306,23 +298,28 @@ class StatementGenerator(using Quotes) {
       val insertSymbol = Symbol.newMethod(Symbol.spliceOwner, "insert", MethodType(List("rowItems"))(rs => List(TypeRepr.of[B]), _ => TypeRepr.of[String]), Flags.Override, Symbol.noSymbol)
       val insertDef = DefDef(insertSymbol, args => Some(sql.asTerm.changeOwner(insertSymbol)))
 
-      //val funcDef = DefDef(funcSym, argss => Some('{ "override" }.asTerm))
-
-      //val newCls = Typed(Apply(Select(New(TypeIdent(name)), name.primaryConstructor), Nil), TypeTree.of[A])
-      //val valDef = vals.map(va => ValDef(clsName.declaredField(va._1), Some('{  UnsafeStatementFiltered($sql) }.asExprOf[UnsafeStatementFiltered].asTerm)))
-
-      val clsDef = ClassDef(clsName, parents, body = List(retrieveDef, retrieveJsonDef, selectDef, insertDef) )
+    val cls = Symbol.newClass(Symbol.spliceOwner, "$anon", parents.map(_.tpe), decls, selfType = None)
+    val clsDef = ClassDef(cls, parents, body = List(retrieveDef, retrieveJsonDef, selectDef, insertDef) )
 
     val initArgs = List(Apply(Select(New(TypeIdent(TypeRepr.of[UnsafeStatementFiltered].typeSymbol)),TypeRepr.of[UnsafeStatementFiltered].typeSymbol.primaryConstructor ), List(Inlined(None, Nil, Literal(StringConstant("SELECT  id, username from user WHERE id=?"))))))
       val t = Typed(Apply(
-        TypeApply(
+        Apply(
           Select(
-            New(TypeIdent(clsName)), clsName.primaryConstructor),
-          List(TypeTree.of[CallArgs[A]], TypeTree.of[CallArgs[B]])
+            New(TypeIdent(cls)), cls.primaryConstructor),
+          List()
         ),
         initArgs
       ), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]])
-
+/*
+val t = Typed(Apply(
+  TypeApply(
+    Select(
+      New(TypeIdent(cls)), cls.primaryConstructor),
+    List(TypeTree.of[CallArgs[A]], TypeTree.of[CallArgs[B]])
+  ),
+  initArgs
+), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]])
+ */
 
 
      val newClass =  Block(List(clsDef), t).asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
@@ -356,127 +353,48 @@ class StatementGenerator(using Quotes) {
       "Generating tree for original class: " + cl.asTerm
         .show(using Printer.TreeStructure)
     )
+    println(
+      "Generating tree for original class: " + cl.asTerm
+        .show
+    )
 
-    // val newInst = Typed(Apply(Select(New(TypeIdent(cls)), cls.primaryConstructor), Nil), TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]])
+    println(
+      "Generating tree for new class: " + newClass.asTerm
+        .show(using Printer.TreeStructure)
+    )
+    println(
+      "Generating tree for new class: " + newClass.asTerm
+        .show
+    )
+
+   newClass.asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
+
 
     /*
-    val methodName: String = "myArbitraryMethodName" // arbitrary method name
-    val methodBody: Expr[String] = '{ "hello from arbitrary method" } // arbitrary method body
-
-    val yToStr = MethodType(List("y"))(_ => List(TypeRepr.of[Double]), _ => TypeRepr.of[String])
-  val className = TypeRepr.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]].typeSymbol.name + "Impl"
-   val parents = List(TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]])
-
-    def decls(cls: Symbol): List[Symbol] =
-      List(Symbol.newMethod(cls, "retrieve", MethodType(List("rs"))(_ => List(TypeRepr.of[java.sql.ResultSet]), _ => TypeRepr.of[Tuple]), Flags.Override, Symbol.noSymbol),
-        Symbol.newMethod(cls, "retrieveJson", MethodType(List("rs"))(_ => List(TypeRepr.of[java.sql.ResultSet]), _ => TypeRepr.of[String]), Flags.Override, Symbol.noSymbol))
-
-    val cls = Symbol.newClass(Symbol.spliceOwner, name, parents.map(_.tpe), decls, selfType = None)
-    val cls = Symbol.newClass(Symbol.spliceOwner, name, parents.map(_.tpe), decls, selfType = None)
-
-    val funcSym = cls.declaredMethod("retrieve").head
-
-    val funcDef = DefDef(funcSym, argss => Some('{ Tuple(1) }.asTerm))
-    val funcSym2 = cls.declaredMethod("retrieveJson").head
-
-    val funcDef2 = DefDef(funcSym2, argss =>   Some('{ ${combinedRsJsonGet} }.asTerm  ))
-   // val methodSym: Symbol = Symbol.newMethod(cls, "func", MethodType(List("s"))(_ => List(TypeRepr.of[String]), _ => TypeRepr.of[String]))
-
-   // val applyDef = DefDef(methodSym, rgss => Some('{"override"}.asTerm) )
-
-    //val methodDef = '{ def $methodName: String = $methodBody }
-
-   // val originalClassType = TypeTree.of[A]
-    //val instance = New(originalClassType)
-
-
-    val clsDef = ClassDef(cls, parents, body = List(funcDef, funcDef2))
-
-
-    val cl = '{
-      new PreparedStatementFiltered[CallArgs[A], CallArgs[B]](UnsafeStatementFiltered($sql)){
-        def go: String = "hello"
-        override def retrieve(rs: java.sql.ResultSet): Tuple = ${ combinedRsGet }.apply(rs)
-        override def retrieveJson(rs: java.sql.ResultSet): String = ${ combinedRsJsonGet }.apply(rs)
-
-
+    scala: Generating tree for original class: {
+      final class $anon() extends scalamacros.statements.PreparedStatementFiltered[scalamacros.statements.Domain$package.CallArgs[scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]], scalamacros.statements.Domain$package.CallArgs[scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]]](new scalamacros.statements.UnsafeStatementFiltered("SELECT  id, username from user WHERE id=?")) {
+        def go: java.lang.String = "hello"
+        override def retrieve(rs: java.sql.ResultSet): scala.Tuple = ((`rs₂`: java.sql.ResultSet) => ((`rs₃`: java.sql.ResultSet) => scala.Tuple.fromProduct(((`rs₄`: java.sql.ResultSet) => scala.Tuple.apply[scala.Int](`rs₄`.getInt("id"))).apply(`rs₃`).++[scala.Tuple](((`rs₅`: java.sql.ResultSet) => scala.Tuple.apply[java.lang.String](`rs₅`.getString("username"))).apply(`rs₃`)))).apply(`rs₂`)).apply(rs)
+        override def retrieveJson(`rs₆`: java.sql.ResultSet): java.lang.String = ((`rs₇`: java.sql.ResultSet) => ((`rs₈`: java.sql.ResultSet) => "{".+(((`rs₉`: java.sql.ResultSet) => _root_.scala.StringContext.apply("\\\"", "\\\":", "").f[scala.Any]("id", `rs₉`.getInt("id"))).apply(`rs₈`)).+(",").+(((`rs₁₀`: java.sql.ResultSet) => _root_.scala.StringContext.apply("\\\"", "\\\":\\\"", "\\\"").f[scala.Any]("username", `rs₁₀`.getString("username"))).apply(`rs₈`)).+("}")).apply(`rs₇`)).apply(`rs₆`)
       }
-    }.asExprOf[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]
 
-    val funcDef = DefDef(Symbol.newMethod(Symbol.spliceOwner, "func", MethodType(List("s"))(_ => List(TypeRepr.of[String]), _ => TypeRepr.of[String]), Flags.Override, Symbol.noSymbol), argss => Some('{ "" }.asTerm))
+      (new $anon(): scalamacros.statements.PreparedStatementFiltered[scalamacros.statements.Domain$package.CallArgs[scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]], scalamacros.statements.Domain$package.CallArgs[scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]]])
+    }
 
-    val methods = cls.declaredMethods
-    val methodDefs: List[DefDef] = methods.map { method =>
-      DefDef(method, Nil, method.info)
+    scala: Generating tree for new class: {
+      final class $anon() extends scalamacros.statements.PreparedStatementFiltered[scalamacros.statements.Domain$package.CallArgs[scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]], scalamacros.statements.Domain$package.CallArgs[scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]]] {
+        override def retrieve(rs: java.sql.ResultSet): scala.Tuple = ((`rs₂`: java.sql.ResultSet) => ((`rs₃`: java.sql.ResultSet) => scala.Tuple.fromProduct(((`rs₄`: java.sql.ResultSet) => scala.Tuple.apply[scala.Int](`rs₄`.getInt("id"))).apply(`rs₃`).++[scala.Tuple](((`rs₅`: java.sql.ResultSet) => scala.Tuple.apply[java.lang.String](`rs₅`.getString("username"))).apply(`rs₃`)))).apply(`rs₂`)).apply(rs)
+        override def retrieveJson(`rs₆`: java.sql.ResultSet): java.lang.String = ((`rs₇`: java.sql.ResultSet) => ((`rs₈`: java.sql.ResultSet) => "{".+(((`rs₉`: java.sql.ResultSet) => _root_.scala.StringContext.apply("\\\"", "\\\":", "").f[scala.Any]("id", `rs₉`.getInt("id"))).apply(`rs₈`)).+(",").+(((`rs₁₀`: java.sql.ResultSet) => _root_.scala.StringContext.apply("\\\"", "\\\":\\\"", "\\\"").f[scala.Any]("username", `rs₁₀`.getString("username"))).apply(`rs₈`)).+("}")).apply(`rs₇`)).apply(`rs₆`)
+        override def select(rowItems: scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]): java.lang.String = "SELECT  id, username from user WHERE id=?"
+        override def insert(`rowItems₂`: scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]): java.lang.String = "SELECT  id, username from user WHERE id=?"
+      }
+
+      (new scalamacros.statements.PreparedStatementFiltered[scalamacros.statements.Domain$package.CallArgs[scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]], scalamacros.statements.Domain$package.CallArgs[scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]]](new scalamacros.statements.UnsafeStatementFiltered("SELECT  id, username from user WHERE id=?")): scalamacros.statements.PreparedStatementFiltered[scalamacros.statements.Domain$package.CallArgs[scala.Tuple2[scalamacros.statements.ColDef[scala.Int], scalamacros.statements.ColDef[scala.Predef.String]]], scalamacros.statements.Domain$package.CallArgs[scala.*:[scalamacros.statements.ColDef[scala.Int], scala.Tuple$package.EmptyTuple]]])
     }
 
 
-    val symbol: Symbol = cl.tpe.typeSymbol
 
-    val clsDef = ClassDef(cls, parents, body = List(funcDef))
-
-
-    Block(List(clsDef), newInst).asExprOf[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]
-    val tree = cl.asTerm
-
-
-    val newInst = Typed(Apply(Select(New(TypeIdent(symbol)), cls.primaryConstructor), List('{ UnsafeStatementFiltered($sql) }.asTerm)), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]])
-
-    val typ = Refined.copy(tree)(
-      TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]],
-      List(applyDef)
-    )
-        Typed(tree, typ).asExprOf[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]
-
-
-
-    //val newCls = Typed(Apply(Select(New(TypeIdent(cls)), cls.primaryConstructor),  List('{ UnsafeStatementFiltered($sql) }.asTerm) ), TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]])
-
-    //val init = TypeRepr.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]].typeSymbol.declarations.find(_.name=="<init>").get
-
-    //val t = Apply(TypeApply(Select(New(TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]),init), List()),TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]])
-
-   val t =  Typed(Apply(
-      TypeApply(
-        Select(
-          New(TypeIdent(cls)), cls.primaryConstructor),
-        List(TypeTree.of[CallArgs[A]], TypeTree.of[CallArgs[B]])
-      ),
-     List('{ UnsafeStatementFiltered($sql) }.asTerm)
-    ),TypeTree.of[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]])
-
-     //.asExprOf[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]
-
-    print(clsDef.show)
-    println(t.show)
-
-   Block(List(clsDef), t).asExprOf[PreparedStatementFiltered[CallArgs[A],CallArgs[B]]]
-
-    val cl = '{
-      new PreparedStatementFiltered[CallArgs[A], CallArgs[B]](UnsafeStatementFiltered($sql)) {
-        def go: String = "hello"
-
-        override def retrieve(rs: java.sql.ResultSet): Tuple = ${ combinedRsGet }.apply(rs)
-
-        override def retrieveJson(rs: java.sql.ResultSet): String = ${ combinedRsJsonGet }.apply(rs)
-
-
-      }
-    }.asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
-
-    println(cl.asTerm.show)
-  */
-
-
-    def createFunction: Expr[java.sql.ResultSet => String] =
-      '{ (a: java.sql.ResultSet) => ${ combinedRsJsonGet}.apply( a) }
-
-
-
-
-
-    //cl
-   newClass.asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
+     */
   }
 
 }
