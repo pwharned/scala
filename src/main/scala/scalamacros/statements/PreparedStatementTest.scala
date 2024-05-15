@@ -99,9 +99,10 @@ object DB2Connector {
 
   val selectStatement2 = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username")) ( Tuple(ColDef[Int]("id") ))
 
+
+
   //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
   val queryJson: String = selectStatement2.select(Tuple(1))
-
 
 
   val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))

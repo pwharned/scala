@@ -261,11 +261,7 @@ class StatementGenerator(using Quotes) {
 
       )
 
-      //val cls = Symbol.newClass(Symbol.spliceOwner, name, parents.map(_.tpe), decls, selfType = None)
-
-     // val funcSym = name.declaredMethod("func").head
       val retrieveSymbol  = Symbol.newMethod(Symbol.spliceOwner, "retrieve", MethodType(List("rs"))(rs => List(TypeRepr.of[java.sql.ResultSet]), _ => TypeRepr.of[scala.Tuple]), Flags.Override, Symbol.noSymbol)
-      //val retrieveDef = DefDef(retrieveSymbol, rs => Some('{ (rs: java.sql.ResultSet) => ${combinedRsJsonGet}.apply(rs) }.asTerm.changeOwner(retrieveSymbol) ))
 
       val retrieveDef = DefDef(
         retrieveSymbol, {
@@ -274,15 +270,6 @@ class StatementGenerator(using Quotes) {
       )
 
       val retrieveJsonSymbol = Symbol.newMethod(Symbol.spliceOwner, "retrieveJson", MethodType(List("rs"))(rs => List(TypeRepr.of[java.sql.ResultSet]), _ => TypeRepr.of[String]), Flags.Override, Symbol.noSymbol)
-
-      //val retrieveJsonDef = DefDef(retrieveJsonSymbol, argss => Some('{${ combinedRsJsonGet}}.asTerm.changeOwner(retrieveJsonSymbol) ))
-     //val retrieveJsonDef =DefDef(retrieveJsonSymbol, List(TermParamClause(List(ValDef("rs", TypeIdent("java.sql.ResultSet"), None)))), Inferred(), Some(Block(Nil, Apply(Select(Ident("combinedRsJsonGet"), "apply"), Nil))))
-      //Apply(TypeApply(Select(Ident("ColDef"), "apply"), List(TypeIdent("String"))), List(Literal(StringConstant("username"))))
-
-      // obj: Term
-      // child: Symbol
-     // TypeApply(Select.unique(obj, "isInstanceOf"), List(TypeIdent(child)))
-
 
 
       val retrieveJsonDef = DefDef(
@@ -298,18 +285,50 @@ class StatementGenerator(using Quotes) {
       val insertSymbol = Symbol.newMethod(Symbol.spliceOwner, "insert", MethodType(List("rowItems"))(rs => List(TypeRepr.of[B]), _ => TypeRepr.of[String]), Flags.Override, Symbol.noSymbol)
       val insertDef = DefDef(insertSymbol, args => Some(sql.asTerm.changeOwner(insertSymbol)))
 
-    val cls = Symbol.newClass(Symbol.spliceOwner, "$anon", parents.map(_.tpe), decls, selfType = None)
-    val clsDef = ClassDef(cls, parents, body = List(retrieveDef, retrieveJsonDef, selectDef, insertDef) )
 
     val initArgs = List(Apply(Select(New(TypeIdent(TypeRepr.of[UnsafeStatementFiltered].typeSymbol)),TypeRepr.of[UnsafeStatementFiltered].typeSymbol.primaryConstructor ), List(Inlined(None, Nil, Literal(StringConstant("SELECT  id, username from user WHERE id=?"))))))
-      val t = Typed(Apply(
+    val initArgs2 = Apply(
+      Select(
+        New(
+          TypeIdent(
+            TypeRepr.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]] ].typeSymbol
+          )
+        ),
+        TypeRepr.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]].typeSymbol.primaryConstructor
+      ),
+      initArgs
+    )
+
+
+    val cls = Symbol.newClass(Symbol.spliceOwner, "$anon", parents.map(_.tpe), decls, selfType = None)
+
+
+    val clsDef = ClassDef(cls, List(initArgs2), body = List(retrieveDef, retrieveJsonDef, selectDef, insertDef) )
+
+    println(clsDef.show)
+
+
+   //Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(ClassDef("$anon", DefDef("<init>", List(TermParamClause(Nil)), Inferred(), None), List(Apply(TypeApply(Select(New(Applied(TypeIdent("PreparedStatementFiltered"), List(Applied(TypeIdent("CallArgs"), List(Inferred())), Applied(TypeIdent("CallArgs"), List(Inferred()))))), "<init>"), List(Inferred(), Inferred())), List(Apply(Select(New(TypeIdent("UnsafeStatementFiltered")), "<init>"), List(Inlined(None, Nil, Literal(StringConstant("SELECT  id, username from user WHERE id=?")))))))), None, List(DefDef("go", Nil, Inferred(), Some(Literal(StringConstant("hello")))), DefDef("retrieve", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), TypeIdent("Tuple"), Some(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Block(Nil, Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", Inferred(), None)))), Inferred(), Some(Block(Nil, Apply(Select(Select(Ident("scala"), "Tuple"), "fromProduct"), List(Apply(TypeApply(Select(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Apply(TypeApply(Select(Ident("Tuple"), "apply"), List(Inferred())), List(Apply(Select(Ident("rs"), "getInt"), List(Inlined(None, Nil, Literal(StringConstant("id")))))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))), "++"), List(Inferred())), List(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Apply(TypeApply(Select(Ident("Tuple"), "apply"), List(Inferred())), List(Apply(Select(Ident("rs"), "getString"), List(Inlined(None, Nil, Literal(StringConstant("username")))))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))), DefDef("retrieveJson", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Block(Nil, Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", Inferred(), None)))), Inferred(), Some(Block(Nil, Apply(Select(Apply(Select(Apply(Select(Apply(Select(Literal(StringConstant("{")), "+"), List(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Apply(TypeApply(Select(Apply(Select(Select(Select(Ident("_root_"), "scala"), "StringContext"), "apply"), List(Typed(Repeated(List(Literal(StringConstant("\"")), Literal(StringConstant("\":")), Literal(StringConstant(""))), Inferred()), Inferred()))), "f"), List(Inferred())), List(Typed(Repeated(List(Inlined(None, Nil, Literal(StringConstant("id"))), Apply(Select(Ident("rs"), "getInt"), List(Inlined(None, Nil, Literal(StringConstant("id")))))), Inferred()), Inferred())))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))), "+"), List(Literal(StringConstant(",")))), "+"), List(Apply(Select(Inlined(None, Nil, Inlined(Some(TypeIdent("StatementGenerator")), Nil, Block(List(DefDef("$anonfun", List(TermParamClause(List(ValDef("rs", TypeSelect(Select(Ident("java"), "sql"), "ResultSet"), None)))), Inferred(), Some(Apply(TypeApply(Select(Apply(Select(Select(Select(Ident("_root_"), "scala"), "StringContext"), "apply"), List(Typed(Repeated(List(Literal(StringConstant("\"")), Literal(StringConstant("\":\"")), Literal(StringConstant("\""))), Inferred()), Inferred()))), "f"), List(Inferred())), List(Typed(Repeated(List(Inlined(None, Nil, Literal(StringConstant("username"))), Apply(Select(Ident("rs"), "getString"), List(Inlined(None, Nil, Literal(StringConstant("username")))))), Inferred()), Inferred())))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))), "+"), List(Literal(StringConstant("}")))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs"))))))), Closure(Ident("$anonfun"), None)))), "apply"), List(Ident("rs")))))))), Typed(Apply(Select(New(TypeIdent("$anon")), "<init>"), Nil), Inferred())))
+
+
+
+
+    val t2 = Typed(
+      Apply(
+        Select(
+          New(TypeIdent(cls)), cls.primaryConstructor),
+        List(Literal(StringConstant("SELECT  id, username from user WHERE id=?")))
+      ), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
+    )
+
+    val t3 = Typed(
         Apply(
           Select(
             New(TypeIdent(cls)), cls.primaryConstructor),
-          List()
-        ),
-        initArgs
-      ), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]])
+          Nil
+        ), TypeTree.of[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]])
+
+    print(t3.show)
 /*
 val t = Typed(Apply(
   TypeApply(
@@ -322,13 +341,9 @@ val t = Typed(Apply(
  */
 
 
-     val newClass =  Block(List(clsDef), t).asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
+     val newClass =  Block(List(clsDef), t3).asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
 
 
-    println(
-      "Generating tree for class: " + newClass.asTerm
-        .show(using Printer.TreeStructure)
-    )
 
 
     val cl = '{
@@ -353,6 +368,11 @@ val t = Typed(Apply(
       "Generating tree for original class: " + cl.asTerm
         .show(using Printer.TreeStructure)
     )
+
+    println(
+      "Generating tree for new class: " + newClass.asTerm
+        .show(using Printer.TreeStructure)
+    )
     println(
       "Generating tree for original class: " + cl.asTerm
         .show
@@ -360,14 +380,10 @@ val t = Typed(Apply(
 
     println(
       "Generating tree for new class: " + newClass.asTerm
-        .show(using Printer.TreeStructure)
-    )
-    println(
-      "Generating tree for new class: " + newClass.asTerm
         .show
     )
 
-   newClass.asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
+   newClass//.asExprOf[PreparedStatementFiltered[CallArgs[A], CallArgs[B]]]
 
 
     /*
