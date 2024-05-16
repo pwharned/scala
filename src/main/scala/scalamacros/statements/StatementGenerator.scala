@@ -443,20 +443,23 @@ val t = Typed(Apply(
 
             val funcExprs: Seq[java.sql.ResultSet => String] = exprs.map(x => x._2)
 
-          val functions: java.sql.ResultSet => String = (rs: java.sql.ResultSet) => funcExprs match {
-            case x: List[java.sql.ResultSet => String] =>
-              x match
+          val functions: java.sql.ResultSet => String = {
+                println("I am invoking funcions")
+          val  res =  (rs: java.sql.ResultSet) => funcExprs  match
                 case head :: tail => tail.foldLeft(head) { (acc, next) =>
                   rs => "{" + acc.apply(rs) + "," + next.apply(rs) + "}"
                 }.apply(rs)
-                case Nil => ???
+                case Nil =>  "error"
 
+            println(" I was succesfully invoked but I dont know how")
+
+            res
           }
 
 
 
           val func = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) =>
-            new Iterator[String] {
+
               val pstmt: java.sql.PreparedStatement =
                 action match {
                   case x: String if (x.startsWith("get")) => {
@@ -486,12 +489,18 @@ val t = Typed(Apply(
               pstmt.execute()
 
               val resultSet: ResultSet = pstmt.getResultSet
+              new Iterator[String] {
 
-              def hasNext: Boolean = resultSet.next()
+              def hasNext: Boolean = false
 
               def next(): String = {
-                functions.apply( resultSet)
+                println("hello")
+                val res = functions.apply( resultSet)
+                println("goodbye")
+                res
               }
+
+
             }
 
           (action, func)

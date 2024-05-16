@@ -110,22 +110,27 @@ object DB2Connector {
 
   val conn: Connection = DriverManager.getConnection(url, username, password)
 
-  println(selectStatement2.database.get("getuser").get.apply(Seq(("id", 1)),conn))
+  val test = selectStatement2.database.get("getuser").get.apply(Seq(("id", 1)),conn)
 
-
-  //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
-  val queryJson: String = selectStatement2.select(Tuple(1))
-
-
-  def rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
-
-  def getUsers(out: PrintStream): String = {
-
-    val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
-    iterateResultSet(rsJson, selectStatement2.retrieveJson,out)
+  {
+    Try {
+      test.next()
+    } match
+      case Failure(exception) => exception.printStackTrace()
+      case Success(value) => println(value)
   }
-  // Logged AST that was used to find out the structure of the code that was matched in the macro.
-  logAST {
-    (ColDef[Int]("id"), ColDef[String]("lastName"))
-  }  
+
+      //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
+      val queryJson: String = selectStatement2.select(Tuple(1))
+      def rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
+
+      def getUsers(out: PrintStream): String = {
+
+        val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
+        iterateResultSet(rsJson, selectStatement2.retrieveJson, out)
+      }
+      // Logged AST that was used to find out the structure of the code that was matched in the macro.
+      logAST {
+        (ColDef[Int]("id"), ColDef[String]("lastName"))
+      }
 }
