@@ -44,12 +44,13 @@ trait Servable:
                     |""".stripMargin
 
     //out.write(chunked.getBytes("utf-8"))
-
     val string = start + DB2Connector.getUsers(out) + "0\r\n\r\n"
     //out.write("0\r\n\r\n".getBytes("utf-8"))
     out.write(string.getBytes("utf-8"))
     out.flush()
     out.close()
+    
+
   }
 @experimental
 object Main extends App with Servable:

@@ -101,11 +101,12 @@ object DB2Connector {
 
 
 
+
   //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
   val queryJson: String = selectStatement2.select(Tuple(1))
 
 
-  val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
+  def rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
 
   def getUsers(out: PrintStream): String = {
 
