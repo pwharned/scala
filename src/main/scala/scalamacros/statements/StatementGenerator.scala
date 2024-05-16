@@ -393,23 +393,109 @@ val t = Typed(Apply(
 
 
     def combineFullResultSetToJsonExprs(exprs: Expr[Map[String, Seq[ColumnInfo]]])(using Quotes) = '{
-      $exprs.map {
-        expr => {
-          val body: java.sql.ResultSet => String  = (rs: java.sql.ResultSet) => rs.getString(expr._1)
-          expr._2.map{
-            colInfo => colInfo.dbType match {
-              case DbType.DbInt => {
-                ((rs: java.sql.ResultSet) => f"\"${ colInfo.name }\":${rs.getInt(colInfo.name )}")
-              }
-              case DbType.DbString => {
-                ((rs: java.sql.ResultSet) => f"\"${colInfo.name}\":${rs.getString(colInfo.name)}")
-              }
+      $exprs.flatMap { expr =>
+        val actionSeq = Seq("get", "create").map(y => y + expr._1)
+        actionSeq.map { action =>
+           {
+            val exprs: Seq[java.sql.ResultSet => String] =
+            expr._2.map {
+              colInfo =>
+                colInfo.dbType match {
+                  case DbType.DbInt => {
+                    ((rs: java.sql.ResultSet) => f"\"${colInfo.name}\":${rs.getInt(colInfo.name)}")
+                  }
+                  case DbType.DbString => {
+                    ((rs: java.sql.ResultSet) => f"\"${colInfo.name}\":${rs.getString(colInfo.name)}")
+                  }
 
+                }
+            }
+            val func: java.sql.ResultSet => String = (rs: java.sql.ResultSet) => exprs match {
+              case x: List[java.sql.ResultSet => String] =>
+                x match
+                  case head :: tail => tail.foldLeft(head) { (acc, next) =>
+                    rs => "{" + acc.apply(rs) + "," + next.apply(rs) + "}"
+                  }.apply(rs)
+                  case Nil => ???
+
+            }
+
+            (expr._1, func)
+          }
+        }
+      }
+    }
+
+    def FullResultSetToJsonExprs (exprs: Expr[Map[String, Seq[ColumnInfo]]])(using Quotes) = '{
+      $exprs.flatMap { expr =>
+        val actionSeq = Seq("get", "create").map(y => y + expr._1)
+        actionSeq.map { action => {
+          val exprs: Seq[(ColumnInfo, java.sql.ResultSet => String)] = {
+            expr._2.map { colInfo =>
+              colInfo.dbType match {
+                case DbType.DbInt =>
+                  (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getInt(colInfo.name)}")
+                case DbType.DbString =>
+                  (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getString(colInfo.name)}")
+              }
             }
           }
 
+            val funcExprs: Seq[java.sql.ResultSet => String] = exprs.map(x => x._2)
 
-          (expr._1, body )
+          val functions: java.sql.ResultSet => String = (rs: java.sql.ResultSet) => funcExprs match {
+            case x: List[java.sql.ResultSet => String] =>
+              x match
+                case head :: tail => tail.foldLeft(head) { (acc, next) =>
+                  rs => "{" + acc.apply(rs) + "," + next.apply(rs) + "}"
+                }.apply(rs)
+                case Nil => ???
+
+          }
+
+
+
+          val func = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) =>
+            new Iterator[String] {
+              val pstmt: java.sql.PreparedStatement =
+                action match {
+                  case x: String if (x.startsWith("get")) => {
+                    val query = {
+                      val tableName = expr._1
+                      val columnNames = expr._2.map(_.name).mkString(", ")
+                      val filterNames = inputParameters.map(j => j._1 + "=?").mkString(" AND ")
+                      f"SELECT $columnNames from $tableName WHERE $filterNames"
+                    }
+                    c.prepareStatement(query)
+                  }
+                  case x: String if (x.startsWith("create")) => {
+                    val query = {
+                      val tableName = expr._1
+                      val columnNames = expr._2.map(_.name).mkString(", ")
+                      val placeholders = inputParameters.map(j => j._1 + "=?").mkString(" , ")
+                      s"INSERT INTO $tableName ($columnNames) VALUES ($placeholders)"
+                    }
+                    c.prepareStatement(query)
+                  }
+                }
+
+              inputParameters.map(z => z._2).zipWithIndex.foreach { case (param, idx) =>
+                pstmt.setObject(idx + 1, param)
+              }
+
+              pstmt.execute()
+
+              val resultSet: ResultSet = pstmt.getResultSet
+
+              def hasNext: Boolean = resultSet.next()
+
+              def next(): String = {
+                functions.apply( resultSet)
+              }
+            }
+
+          (action, func)
+        }
         }
       }
     }
@@ -417,9 +503,14 @@ val t = Typed(Apply(
 
 
 
+
+
+
     val cl = '{
       new PreparedStatementFiltered[CallArgs[A], CallArgs[B]](UnsafeStatementFiltered($sql)) {
         def go: String = "hello"
+
+         override val database: Map[String, (Seq[(String, Any)], java.sql.Connection) => Iterator[String]]   = ${FullResultSetToJsonExprs(parsedExpr)}
 
 
 

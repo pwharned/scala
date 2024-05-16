@@ -97,9 +97,20 @@ object DB2Connector {
 
   }
 
+  /*
+  A
+
+  Server will accept
+  (string which will be matched to a function call)
+  (input parameters: rowItems[CallArgs])
+
+   */
+
   val selectStatement2 = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username")) ( Tuple(ColDef[Int]("id") ))
 
+  val conn: Connection = DriverManager.getConnection(url, username, password)
 
+  println(selectStatement2.database.get("getuser").get.apply(Seq(("id", 1)),conn))
 
 
   //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
