@@ -2,7 +2,7 @@ package scalamacros.statements
 
 import scalamacros.statements.DbType.DbString
 
-import java.sql.ResultSet
+import java.sql.{Connection, ResultSet}
 import scala.annotation.experimental
 import scala.compiletime.error
 import scala.quoted.*
@@ -429,36 +429,42 @@ val t = Typed(Apply(
     def FullResultSetToJsonExprs (exprs: Expr[Map[String, Seq[ColumnInfo]]])(using Quotes) = '{
       $exprs.flatMap { expr =>
         val actionSeq = Seq("get", "create").map(y => y + expr._1)
-        actionSeq.map { action => {
-          val exprs: Seq[(ColumnInfo, java.sql.ResultSet => String)] = {
-            expr._2.map { colInfo =>
-              colInfo.dbType match {
-                case DbType.DbInt =>
-                  (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getInt(colInfo.name)}")
-                case DbType.DbString =>
-                  (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getString(colInfo.name)}")
+        actionSeq.map { action =>
+          val func = '{
+            {
+              val exprs: Seq[(ColumnInfo, java.sql.ResultSet => String)] = {
+                expr._2.map { colInfo =>
+                  colInfo.dbType match {
+                    case DbType.DbInt =>
+                      (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getInt(colInfo.name)}")
+                    case DbType.DbString =>
+                      (colInfo, (rs: java.sql.ResultSet) => f"${colInfo.name}:${rs.getString(colInfo.name)}")
+                  }
+                }
               }
+
+              val funcExprs: Seq[java.sql.ResultSet => String] = exprs.map(x => x._2)
+
+              val functions: java.sql.ResultSet => String = {
+                println("I am invoking funcions")
+                val res = (rs: java.sql.ResultSet) => funcExprs match
+                  case head :: tail => tail.foldLeft(head) { (acc, next) =>
+                    rs => "{" + acc.apply(rs) + "," + next.apply(rs) + "}"
+                  }.apply(rs)
+                  case _ => "error"
+
+                println(" I was succesfully invoked but I dont know how")
+
+                res
+              }
+
+              functions
+
+
             }
           }
 
-            val funcExprs: Seq[java.sql.ResultSet => String] = exprs.map(x => x._2)
-
-          val functions: java.sql.ResultSet => String = {
-                println("I am invoking funcions")
-          val  res =  (rs: java.sql.ResultSet) => funcExprs  match
-                case head :: tail => tail.foldLeft(head) { (acc, next) =>
-                  rs => "{" + acc.apply(rs) + "," + next.apply(rs) + "}"
-                }.apply(rs)
-                case Nil =>  "error"
-
-            println(" I was succesfully invoked but I dont know how")
-
-            res
-          }
-
-
-
-          val func = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) =>
+            val getResultSet: (Seq[(String, Any)], Connection) => Iterator[String] = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) => {
 
               val pstmt: java.sql.PreparedStatement =
                 action match {
@@ -488,26 +494,40 @@ val t = Typed(Apply(
 
               pstmt.execute()
 
-              val resultSet: ResultSet = pstmt.getResultSet
+
+
               new Iterator[String] {
 
-              def hasNext: Boolean = false
+                val resultSet = pstmt.getResultSet
 
-              def next(): String = {
-                println("hello")
-                val res = functions.apply( resultSet)
-                println("goodbye")
-                res
+
+                def hasNext: Boolean = false
+
+                def next(): String = {
+                  println("hello")
+                  val res = ${func}.apply(resultSet)
+                  println("goodbye")
+                  res
+                }
+
+
               }
+
+
 
 
             }
 
-          (action, func)
+
+          (action, getResultSet)
+        }
+
+
+
         }
         }
-      }
-    }
+
+
 
 
 
