@@ -61,7 +61,7 @@ class PreparedStatementFiltered[A <: Tuple, B<: Tuple](statement: UnsafeStatemen
   def select(rowItems: B): String = {
     statement.select(rowItems.toList: _*)
   }
-  val database: Map[String, (Seq[(String, Any)], java.sql.Connection) => Iterator[String]] = Map.empty
+  val database: Map[String, (Seq[(String, Any)], java.sql.Connection) => Iterator[java.sql.ResultSet]] = Map.empty
   
   def retrieveJson(rs: java.sql.ResultSet): String = "test"
   def retrieve(rs: java.sql.ResultSet): Tuple = Tuple(1)

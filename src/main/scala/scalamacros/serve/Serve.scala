@@ -26,6 +26,7 @@ trait Servable:
     val in = new BufferedSource(socket.getInputStream()).getLines()
     val out = new PrintStream(socket.getOutputStream())
 
+
    // while Try(in.hasNext).getOrElse(false) do
      // println(in.next())
      val start = """HTTP/1.1 200 OK
@@ -46,6 +47,7 @@ trait Servable:
     //out.write(chunked.getBytes("utf-8"))
     val string = start + DB2Connector.getUsers(out) + "0\r\n\r\n"
     //out.write("0\r\n\r\n".getBytes("utf-8"))
+
     out.write(string.getBytes("utf-8"))
     out.flush()
     out.close()

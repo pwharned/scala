@@ -14,7 +14,7 @@ case class ColumnInfo(val dbType: DbType, name: String)
 object SqlParser {
   val parsed: Map[String, Seq[ColumnInfo]] = {
     //val content = scala.io.Source.fromURL(getClass.getResource("schema.sql")).getLines().mkString
-    val content = scala.io.Source.fromFile( "/home/pat/Projects/personalProjects/scala3-macros/src/main/resources/schema.sql").getLines().mkString
+    val content = scala.io.Source.fromFile( "/home/pat/Projects/personalProjects/workspace/scala/src/main/resources/schema.sql").getLines().mkString
 
    // val content = scala.io.Source.fromFile(path).mkString
     val statements = content.split(";")

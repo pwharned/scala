@@ -40,6 +40,8 @@ object DB2Connector {
     }
   }
 
+
+
   private def loadDDLStatements(): List[String] = {
     val resourceStream = getClass.getResourceAsStream("/schema.sql")
     val reader = new BufferedReader(new InputStreamReader(resourceStream))
@@ -75,17 +77,15 @@ object DB2Connector {
   //statement.insert(1, "John")
   def iterateResultSet(rs: ResultSet, f:ResultSet => String, out: PrintStream): String = {
     var string = ""
-      if (rs.next()) {
+      while (rs.next()) {
         // process the current row
 
         val jsonBytes = f(rs)
         val chunkSize = jsonBytes.length.toHexString
-
         // Write the chunk size and newline character
         //out.write(s"$chunkSize\r\n".getBytes("UTF-8"))
         // Write the JSON object itself
         //out.write(jsonBytes.getBytes("utf-8"))
-
         // Write another newline character to separate the chunk
         //out.write("\r\n".getBytes("UTF-8"))
         string = string + s"$chunkSize\r\n" + jsonBytes + "\r\n"
@@ -109,16 +109,10 @@ object DB2Connector {
   val selectStatement2 = StatementGenerator.selectPreparedStatement("user")(ColDef[Int]("id"), ColDef[String]("username")) ( Tuple(ColDef[Int]("id") ))
 
   val conn: Connection = DriverManager.getConnection(url, username, password)
-
   val test = selectStatement2.database.get("getuser").get.apply(Seq(("id", 1)),conn)
+  val test2  = selectStatement2.database.get("createuser").get.apply(Seq(("username", "danny"),("id", 1) ),conn)
 
-  {
-    Try {
-      test.next()
-    } match
-      case Failure(exception) => exception.printStackTrace()
-      case Success(value) => println(value)
-  }
+      test.foreach(x => println(selectStatement2.retrieveJson(x)))
 
       //  print(selectStatement2.asInstanceOf[{def func(s: String): String}].func(s = "Test"))
       val queryJson: String = selectStatement2.select(Tuple(1))

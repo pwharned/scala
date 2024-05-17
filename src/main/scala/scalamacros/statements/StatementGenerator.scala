@@ -426,11 +426,24 @@ val t = Typed(Apply(
       }
     }
 
+    def filterAndSort(
+                       tuples: Seq[(String, Any)],
+                       strings: Seq[String]
+                     ): Seq[(String, Any)] = {
+      val filteredTuples = tuples.filter { case (str, _) =>
+        strings.contains(str)
+      }
+      val sortedTuples = filteredTuples.sortBy { case (str, _) =>
+        strings.indexOf(str)
+      }
+      sortedTuples
+    }
+
     def FullResultSetToJsonExprs (exprs: Expr[Map[String, Seq[ColumnInfo]]])(using Quotes) = '{
       $exprs.flatMap { expr =>
         val actionSeq = Seq("get", "create").map(y => y + expr._1)
         actionSeq.map { action =>
-          val func = '{
+          val func = {
             {
               val exprs: Seq[(ColumnInfo, java.sql.ResultSet => String)] = {
                 expr._2.map { colInfo =>
@@ -445,7 +458,8 @@ val t = Typed(Apply(
 
               val funcExprs: Seq[java.sql.ResultSet => String] = exprs.map(x => x._2)
 
-              val functions: java.sql.ResultSet => String = {
+
+              def functions: java.sql.ResultSet => String = {
                 println("I am invoking funcions")
                 val res = (rs: java.sql.ResultSet) => funcExprs match
                   case head :: tail => tail.foldLeft(head) { (acc, next) =>
@@ -453,42 +467,47 @@ val t = Typed(Apply(
                   }.apply(rs)
                   case _ => "error"
 
-                println(" I was succesfully invoked but I dont know how")
-
                 res
               }
 
-              functions
+
 
 
             }
           }
 
-            val getResultSet: (Seq[(String, Any)], Connection) => Iterator[String] = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) => {
-
-              val pstmt: java.sql.PreparedStatement =
+            val getResultSet: (Seq[(String, Any)], Connection) => Iterator[ResultSet] = (inputParameters: Seq[(String, Any)], c: java.sql.Connection) => {
+              val columnNames = expr._2.map(_.name)
+              val pstmt: java.sql.PreparedStatement = {
                 action match {
                   case x: String if (x.startsWith("get")) => {
                     val query = {
                       val tableName = expr._1
-                      val columnNames = expr._2.map(_.name).mkString(", ")
                       val filterNames = inputParameters.map(j => j._1 + "=?").mkString(" AND ")
-                      f"SELECT $columnNames from $tableName WHERE $filterNames"
+                      f"SELECT ${columnNames.mkString(",")} from $tableName WHERE $filterNames"
                     }
                     c.prepareStatement(query)
                   }
                   case x: String if (x.startsWith("create")) => {
                     val query = {
                       val tableName = expr._1
-                      val columnNames = expr._2.map(_.name).mkString(", ")
-                      val placeholders = inputParameters.map(j => j._1 + "=?").mkString(" , ")
-                      s"INSERT INTO $tableName ($columnNames) VALUES ($placeholders)"
+                      val placeholders = inputParameters.map(j => "?").mkString(" , ")
+                      val query = s"INSERT INTO $tableName (${columnNames.mkString(",")} ) VALUES ($placeholders)"
+                      query
                     }
                     c.prepareStatement(query)
                   }
                 }
+              }
 
-              inputParameters.map(z => z._2).zipWithIndex.foreach { case (param, idx) =>
+                val filteredTuples = inputParameters.filter { case (str, _) =>
+                  columnNames.contains(str)
+                }
+                val sortedTuples = filteredTuples.sortBy { case (str, _) =>
+                  columnNames.indexOf(str)
+                }
+
+              sortedTuples.map(z => z._2).zipWithIndex.foreach { case (param, idx) =>
                 pstmt.setObject(idx + 1, param)
               }
 
@@ -496,18 +515,15 @@ val t = Typed(Apply(
 
 
 
-              new Iterator[String] {
+              new Iterator[ResultSet] {
 
                 val resultSet = pstmt.getResultSet
 
 
-                def hasNext: Boolean = false
+                def hasNext: Boolean = resultSet.next()
 
-                def next(): String = {
-                  println("hello")
-                  val res = ${func}.apply(resultSet)
-                  println("goodbye")
-                  res
+                def next(): ResultSet = {
+                  resultSet
                 }
 
 
@@ -539,7 +555,7 @@ val t = Typed(Apply(
       new PreparedStatementFiltered[CallArgs[A], CallArgs[B]](UnsafeStatementFiltered($sql)) {
         def go: String = "hello"
 
-         override val database: Map[String, (Seq[(String, Any)], java.sql.Connection) => Iterator[String]]   = ${FullResultSetToJsonExprs(parsedExpr)}
+         override val database: Map[String, (Seq[(String, Any)], java.sql.Connection) => Iterator[ResultSet]]   = ${FullResultSetToJsonExprs(parsedExpr)}
 
 
 
