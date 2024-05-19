@@ -56,7 +56,8 @@ object DB2Connector {
 
 
     val conn: Connection = DriverManager.getConnection(url, username, password)
-    val pstmt: java.sql.PreparedStatement = conn.prepareStatement(query)
+
+    val pstmt: java.sql.PreparedStatement = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE,  ResultSet.CONCUR_READ_ONLY)
     params.zipWithIndex.foreach { case (param, idx) =>
       pstmt.setObject(idx + 1, param)
     }
@@ -75,26 +76,34 @@ object DB2Connector {
 
   type B = Tuple1[Int]
   //statement.insert(1, "John")
-  def iterateResultSet(rs: ResultSet, f:ResultSet => String, out: PrintStream): String = {
-    var string = ""
+
+  def iterateResultSet(rs: ResultSet, f:ResultSet => String, out: PrintStream) = {
+
+    val chunkSize = (1).toHexString
+    val jsonBytes  = "["
+
+    var js = s"$chunkSize\r\n" + jsonBytes + "\r\n"
+
+    out.write(js.getBytes("utf-8"))
       while (rs.next()) {
+
         // process the current row
 
-        val jsonBytes = f(rs)
-        val chunkSize = jsonBytes.length.toHexString
-        // Write the chunk size and newline character
-        //out.write(s"$chunkSize\r\n".getBytes("UTF-8"))
-        // Write the JSON object itself
-        //out.write(jsonBytes.getBytes("utf-8"))
-        // Write another newline character to separate the chunk
-        //out.write("\r\n".getBytes("UTF-8"))
-        string = string + s"$chunkSize\r\n" + jsonBytes + "\r\n"
+        var jsonBytes = f(rs)
+
+          if(!rs.isLast){
+           jsonBytes = jsonBytes + ","
+          }
+
+
+        val chunkSize = (jsonBytes.length).toHexString
+        val string = s"$chunkSize\r\n" + jsonBytes + "\r\n"
+        out.write(string.getBytes("utf-8"))
 
       }
+    js = s"$chunkSize\r\n" + "]" + "\r\n"
 
-    string
-
-
+    out.write(js.getBytes("utf-8"))
   }
 
   /*
@@ -118,11 +127,12 @@ object DB2Connector {
       val queryJson: String = selectStatement2.select(Tuple(1))
       def rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
 
-      def getUsers(out: PrintStream): String = {
 
-        val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
-        iterateResultSet(rsJson, selectStatement2.retrieveJson, out)
-      }
+  def getUsers(out: PrintStream): Unit = {
+
+    val rsJson: ResultSet = DB2Connector.connectAndRunPreparedStatement(queryJson, Seq(1))
+    iterateResultSet(rsJson, selectStatement2.retrieveJson, out)
+  }
       // Logged AST that was used to find out the structure of the code that was matched in the macro.
       logAST {
         (ColDef[Int]("id"), ColDef[String]("lastName"))

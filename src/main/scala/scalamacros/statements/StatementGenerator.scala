@@ -486,7 +486,8 @@ val t = Typed(Apply(
                       val filterNames = inputParameters.map(j => j._1 + "=?").mkString(" AND ")
                       f"SELECT ${columnNames.mkString(",")} from $tableName WHERE $filterNames"
                     }
-                    c.prepareStatement(query)
+
+                    c.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE,  ResultSet.CONCUR_READ_ONLY)
                   }
                   case x: String if (x.startsWith("create")) => {
                     val query = {
@@ -495,7 +496,8 @@ val t = Typed(Apply(
                       val query = s"INSERT INTO $tableName (${columnNames.mkString(",")} ) VALUES ($placeholders)"
                       query
                     }
-                    c.prepareStatement(query)
+
+                    c.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE,  ResultSet.CONCUR_READ_ONLY)
                   }
                 }
               }
