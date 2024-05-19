@@ -1,4 +1,4 @@
-package scalamacros.statements
+package cicero.statements
 
 // All supported database column types, in this example limited to String and Int.
 enum DbType {

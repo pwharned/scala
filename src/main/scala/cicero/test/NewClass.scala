@@ -1,4 +1,4 @@
-package scalamacros.test
+package cicero.test
 
 import scala.annotation.experimental
 import scala.quoted.*

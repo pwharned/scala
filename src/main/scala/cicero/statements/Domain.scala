@@ -1,4 +1,4 @@
-package scalamacros.statements
+package cicero.statements
 import java.sql.ResultSet
 // Type matching - a new Scala 3 feature - is used to construct the type that will be used
 // to pass runtime arguments to the generated prepared statement.

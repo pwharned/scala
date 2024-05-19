@@ -1,4 +1,4 @@
-package scalamacros.logast
+package cicero.logast
 
 @main def logASTTest(): Unit = {
 

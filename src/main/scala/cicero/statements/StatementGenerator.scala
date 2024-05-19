@@ -1,6 +1,6 @@
-package scalamacros.statements
+package cicero.statements
 
-import scalamacros.statements.DbType.DbString
+import cicero.statements.DbType.DbString
 
 import java.sql.{Connection, ResultSet}
 import scala.annotation.experimental

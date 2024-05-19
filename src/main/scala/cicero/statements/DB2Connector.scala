@@ -1,6 +1,6 @@
-package scalamacros.statements
+package cicero.statements
 import reflect.Selectable.reflectiveSelectable
-import scalamacros.logast.logAST
+import cicero.logast.logAST
 
 import java.io.{BufferedReader, InputStreamReader, PrintStream}
 import java.sql.{Connection, DriverManager, ResultSet, Statement}

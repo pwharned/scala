@@ -1,7 +1,7 @@
-package scalamacros.serve
+package cicero.serve
 
 
-import scalamacros.statements.DB2Connector
+import cicero.statements.DB2Connector
 
 import java.io.PrintStream
 import java.net.{ServerSocket, Socket}
@@ -11,9 +11,10 @@ import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
+import cicero.http.HttpRequestParser
 @experimental
 trait Servable:
+
 
 
   def listen(port: Int): Unit = {
@@ -28,6 +29,14 @@ trait Servable:
   }
 
   def handleRequest(socket: Socket): Unit = {
+    val inputStream = socket.getInputStream()
+    println("got  stream")
+
+    val request = HttpRequestParser.parse(inputStream)
+
+    println("parsing requests")
+
+
     val in = new BufferedSource(socket.getInputStream()).getLines()
     val out = new PrintStream(socket.getOutputStream())
 

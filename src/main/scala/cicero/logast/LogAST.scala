@@ -1,4 +1,4 @@
-package scalamacros.logast
+package cicero.logast
 
 import scala.quoted.*
 

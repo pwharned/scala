@@ -1,4 +1,4 @@
-package scalamacros.NewClass
+package cicero.NewClass
 
 import scala.annotation.experimental
 import scala.quoted.*

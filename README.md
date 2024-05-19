@@ -51,7 +51,7 @@ Also, it contains some other macro examples explaining macros features.
 Please visit Plewand's  blog [here](https://pawel7.medium.com/scala-3-macros-without-pain-ce54d116880a) for more information - some of the code is shamelessly copied from his repository.
 
 
-* [Prepared statement - the main project](src/main/scala/scalamacros/statements)
+* [Prepared statement - the main project](src/main/scala/cicero/statements)
 
 ### Usage
 

@@ -15,4 +15,5 @@ lazy val root = project
   )
 
 libraryDependencies += "com.ibm.db2" % "jcc" % "11.5.7.0"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0"
 
