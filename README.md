@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## Scala 3 macros
 
 This repository is based on the https://github.com/plewand/scala3-macros.git
@@ -71,3 +72,6 @@ The list of the entry points of the examples with appear, choose one.
 
 More information on Scala 3 metaprogramming can be found 
 [here](https://docs.scala-lang.org/scala3/reference/metaprogramming.html).
+=======
+# scala
+>>>>>>> 145dcd9 (Initial commit)

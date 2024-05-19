@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # These are some examples of commonly ignored file patterns.
 # You should customize this list as applicable to your project.
 # Learn more about .gitignore:
@@ -54,3 +55,10 @@ Thumbs.db
 .vscode/
 metals.sbt
 project/metals.sbt
+=======
+*.class
+*.log
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+>>>>>>> 145dcd9 (Initial commit)
